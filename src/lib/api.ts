@@ -81,3 +81,12 @@ export function extractList(data: any): any[] {
   }
   return [];
 }
+
+export function extractSlug(item: any): string {
+  if (!item) return '';
+  if (typeof item === 'string') {
+    return item.replace(/^\/?(anime\/|episode\/)?/, '').replace(/\/$/, '');
+  }
+  const raw = item.slug || item.animeId || item.anime_id || item.episodeId || item.episode_id || item.endpoint || item.id || '';
+  return String(raw).replace(/^\/?(anime\/|episode\/)?/, '').replace(/\/$/, '');
+}

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
-import { getAnimeDetail } from '@/lib/api';
+import { getAnimeDetail, extractSlug } from '@/lib/api';
 import Link from 'next/link';
 import { DetailSkeleton } from '@/components/LoadingSkeleton';
 
@@ -36,7 +36,25 @@ export default function AnimeDetailPage() {
     );
   }
 
-  const anime = data?.data || data;
+  const anime = data?.data || data?.anime || data;
+
+  const episodeList: any[] = Array.isArray(anime?.episode_list)
+    ? anime.episode_list
+    : Array.isArray(anime?.episodes)
+    ? anime.episodes
+    : Array.isArray(anime?.episodeList)
+    ? anime.episodeList
+    : Array.isArray(anime?.list_episode)
+    ? anime.list_episode
+    : [];
+
+  const genreList: any[] = Array.isArray(anime?.genre_list)
+    ? anime.genre_list
+    : Array.isArray(anime?.genres)
+    ? anime.genres
+    : Array.isArray(anime?.genreList)
+    ? anime.genreList
+    : [];
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
@@ -44,14 +62,17 @@ export default function AnimeDetailPage() {
       <div className="flex flex-col md:flex-row gap-8 mb-10">
         <div className="w-full md:w-72 flex-shrink-0">
           <img
-            src={anime?.poster || anime?.thumb || ''}
-            alt={anime?.title || ''}
+            src={anime?.poster || anime?.thumb || anime?.image || 'https://placehold.co/300x400/1a1730/ffffff?text=No+Image'}
+            alt={anime?.title || anime?.name || 'Anime'}
             className="w-full rounded-xl shadow-2xl shadow-primary/10"
+            onError={(e) => {
+              (e.target as HTMLImageElement).src = 'https://placehold.co/300x400/1a1730/ffffff?text=No+Image';
+            }}
           />
         </div>
         <div className="flex-1">
           <h1 className="text-3xl font-bold mb-4 text-white">
-            {anime?.title}
+            {anime?.title || anime?.name}
           </h1>
           {anime?.japanese && (
             <p className="text-gray-400 text-sm mb-4 italic">{anime.japanese}</p>
@@ -110,60 +131,68 @@ export default function AnimeDetailPage() {
           </div>
 
           {/* Genres */}
-          {Array.isArray(anime?.genre_list || anime?.genres) && (anime?.genre_list || anime?.genres).length > 0 && (
+          {genreList.length > 0 && (
             <div className="flex flex-wrap gap-2 mb-6">
-              {(anime.genre_list || anime.genres).map((genre: any, i: number) => (
-                <Link
-                  key={genre?.slug || i}
-                  href={`/genre/${genre?.slug || ''}`}
-                  className="px-3 py-1 bg-primary/20 text-primary text-xs font-medium rounded-full hover:bg-primary/40 transition-colors"
-                >
-                  {genre?.name || genre?.title || String(genre)}
-                </Link>
-              ))}
+              {genreList.map((genre: any, i: number) => {
+                const genreSlug = extractSlug(genre) || genre?.name || '';
+                return (
+                  <Link
+                    key={genreSlug || i}
+                    href={genreSlug ? `/genre/${genreSlug}` : '#'}
+                    className="px-3 py-1 bg-primary/20 text-primary text-xs font-medium rounded-full hover:bg-primary/40 transition-colors"
+                  >
+                    {genre?.name || genre?.title || String(genre)}
+                  </Link>
+                );
+              })}
             </div>
           )}
 
           {/* Synopsis */}
-          {anime?.synopsis && (
+          {(anime?.synopsis || anime?.sinopsis) && (
             <div>
               <h3 className="text-lg font-semibold mb-2 text-white">Sinopsis</h3>
-              <p className="text-gray-400 text-sm leading-relaxed">{anime.synopsis}</p>
+              <p className="text-gray-400 text-sm leading-relaxed">{anime.synopsis || anime.sinopsis}</p>
             </div>
           )}
         </div>
       </div>
 
       {/* Episode List */}
-      {Array.isArray(anime?.episode_list || anime?.episodes) && (anime?.episode_list || anime?.episodes).length > 0 && (
-        <section>
-          <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
-            <span className="w-1 h-8 bg-primary rounded-full"></span>
-            Daftar Episode
-          </h2>
+      <section>
+        <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
+          <span className="w-1 h-8 bg-primary rounded-full"></span>
+          Daftar Episode
+        </h2>
+        {episodeList.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-            {(anime.episode_list || anime.episodes).map((ep: any, index: number) => (
-              <Link
-                key={ep?.slug || index}
-                href={ep?.slug ? `/episode/${ep.slug}` : '#'}
-                className="flex items-center gap-3 p-3 bg-card rounded-lg border border-transparent hover:border-primary/40 hover:bg-primary/10 transition-all group"
-              >
-                <span className="w-10 h-10 flex items-center justify-center bg-primary/20 text-primary rounded-lg text-sm font-bold group-hover:bg-primary group-hover:text-white transition-colors">
-                  {index + 1}
-                </span>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-300 truncate group-hover:text-white transition-colors">
-                    {ep?.title || `Episode ${index + 1}`}
-                  </p>
-                  {ep?.date && (
-                    <p className="text-xs text-gray-500">{ep.date}</p>
-                  )}
-                </div>
-              </Link>
-            ))}
+            {episodeList.map((ep: any, index: number) => {
+              const epSlug = extractSlug(ep);
+              return (
+                <Link
+                  key={epSlug || index}
+                  href={epSlug ? `/episode/${epSlug}` : '#'}
+                  className="flex items-center gap-3 p-3 bg-card rounded-lg border border-transparent hover:border-primary/40 hover:bg-primary/10 transition-all group"
+                >
+                  <span className="w-10 h-10 flex items-center justify-center bg-primary/20 text-primary rounded-lg text-sm font-bold group-hover:bg-primary group-hover:text-white transition-colors">
+                    {index + 1}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-300 truncate group-hover:text-white transition-colors">
+                      {ep?.title || ep?.name || ep?.episode || `Episode ${index + 1}`}
+                    </p>
+                    {ep?.date && (
+                      <p className="text-xs text-gray-500">{ep.date}</p>
+                    )}
+                  </div>
+                </Link>
+              );
+            })}
           </div>
-        </section>
-      )}
+        ) : (
+          <p className="text-gray-500 py-6">Belum ada episode yang tersedia untuk anime ini.</p>
+        )}
+      </section>
     </div>
   );
 }

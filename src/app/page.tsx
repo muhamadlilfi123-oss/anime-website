@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { getHome } from '@/lib/api';
+import { getHome, extractSlug } from '@/lib/api';
 import AnimeCard from '@/components/AnimeCard';
 import { AnimeGridSkeleton } from '@/components/LoadingSkeleton';
 import Link from 'next/link';
@@ -75,17 +75,20 @@ export default function HomePage() {
           <AnimeGridSkeleton count={12} />
         ) : ongoingList.length > 0 ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-            {ongoingList.map((anime: any, index: number) => (
-              <AnimeCard
-                key={anime?.slug || index}
-                title={anime?.title || anime?.name}
-                slug={anime?.slug}
-                poster={anime?.poster || anime?.thumb || anime?.image}
-                episode={anime?.current_episode || anime?.episode}
-                score={anime?.score}
-                type={anime?.type}
-              />
-            ))}
+            {ongoingList.map((anime: any, index: number) => {
+              const slug = extractSlug(anime);
+              return (
+                <AnimeCard
+                  key={slug || index}
+                  title={anime?.title || anime?.name}
+                  slug={slug}
+                  poster={anime?.poster || anime?.thumb || anime?.image}
+                  episode={anime?.current_episode || anime?.episode}
+                  score={anime?.score}
+                  type={anime?.type}
+                />
+              );
+            })}
           </div>
         ) : (
           <p className="text-gray-500 text-center py-6">Tidak ada anime ongoing ditemukan.</p>
@@ -107,18 +110,21 @@ export default function HomePage() {
           <AnimeGridSkeleton count={12} />
         ) : completeList.length > 0 ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-            {completeList.map((anime: any, index: number) => (
-              <AnimeCard
-                key={anime?.slug || index}
-                title={anime?.title || anime?.name}
-                slug={anime?.slug}
-                poster={anime?.poster || anime?.thumb || anime?.image}
-                episode={anime?.total_episode || anime?.episode}
-                score={anime?.score}
-                status="Complete"
-                type={anime?.type}
-              />
-            ))}
+            {completeList.map((anime: any, index: number) => {
+              const slug = extractSlug(anime);
+              return (
+                <AnimeCard
+                  key={slug || index}
+                  title={anime?.title || anime?.name}
+                  slug={slug}
+                  poster={anime?.poster || anime?.thumb || anime?.image}
+                  episode={anime?.total_episode || anime?.episode}
+                  score={anime?.score}
+                  status="Complete"
+                  type={anime?.type}
+                />
+              );
+            })}
           </div>
         ) : (
           <p className="text-gray-500 text-center py-6">Tidak ada anime complete ditemukan.</p>

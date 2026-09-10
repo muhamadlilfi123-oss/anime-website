@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
-import { getEpisode } from '@/lib/api';
+import { getEpisode, extractSlug } from '@/lib/api';
 import Link from 'next/link';
 import { EpisodeSkeleton } from '@/components/LoadingSkeleton';
 
@@ -38,43 +38,78 @@ export default function EpisodePage() {
     );
   }
 
-  const episode = data?.data || data;
+  const episode = data?.data || data?.episode || data;
   const streamingServers = Array.isArray(episode?.streaming) 
     ? episode.streaming 
-    : (Array.isArray(episode?.server) ? episode.server : []);
+    : Array.isArray(episode?.server)
+    ? episode.server
+    : Array.isArray(episode?.servers)
+    ? episode.servers
+    : Array.isArray(episode?.server_list)
+    ? episode.server_list
+    : [];
+
   const currentServer = streamingServers[activeServer];
   const qualities = Array.isArray(currentServer?.quality) 
     ? currentServer.quality 
-    : (Array.isArray(currentServer?.qualities) ? currentServer.qualities : []);
-  const currentUrl = qualities[activeQuality]?.url || qualities[activeQuality]?.link || currentServer?.url || episode?.stream_url || '';
+    : Array.isArray(currentServer?.qualities)
+    ? currentServer.qualities
+    : [];
+
+  // Cari URL streaming dari berbagai kemungkinan format
+  let rawUrl = qualities[activeQuality]?.url || 
+               qualities[activeQuality]?.link || 
+               currentServer?.url || 
+               currentServer?.link || 
+               currentServer?.iframe ||
+               episode?.stream_url || 
+               episode?.link_stream || 
+               episode?.streamLink || 
+               episode?.video_url || 
+               episode?.url || 
+               episode?.iframe || 
+               '';
+
+  // Jika iframe berupa HTML string `<iframe src="...">`, ambil src-nya
+  if (typeof rawUrl === 'string' && rawUrl.includes('<iframe')) {
+    const match = rawUrl.match(/src=["'](.*?)["']/);
+    if (match && match[1]) {
+      rawUrl = match[1];
+    }
+  }
+
+  const prevSlug = extractSlug(episode?.prev_episode || episode?.prev || episode?.previous_episode);
+  const nextSlug = extractSlug(episode?.next_episode || episode?.next);
+  const animeSlug = extractSlug(episode?.anime_slug || episode?.animeId || episode?.anime);
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-8">
       {/* Video Player */}
       <div className="aspect-video bg-black rounded-xl overflow-hidden shadow-2xl shadow-primary/10 mb-6">
-        {currentUrl ? (
+        {rawUrl ? (
           <iframe
-            src={currentUrl}
+            src={rawUrl}
             className="w-full h-full"
             allowFullScreen
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-gray-500">
-            <p>Pilih server untuk memutar video</p>
+          <div className="w-full h-full flex flex-col items-center justify-center text-gray-500 p-4 text-center">
+            <p className="text-lg mb-2">🎬 Video Player</p>
+            <p className="text-sm">Pilih server atau kualitas di bawah untuk memutar video</p>
           </div>
         )}
       </div>
 
       {/* Episode Title */}
       <h1 className="text-2xl font-bold mb-4 text-white">
-        {episode?.title || 'Episode'}
+        {episode?.title || episode?.name || 'Episode'}
       </h1>
 
       {/* Server Selection */}
       {streamingServers.length > 0 && (
         <div className="mb-6">
-          <h3 className="text-sm font-semibold text-gray-400 mb-3">Server:</h3>
+          <h3 className="text-sm font-semibold text-gray-400 mb-3">Pilih Server:</h3>
           <div className="flex flex-wrap gap-2">
             {streamingServers.map((server: any, index: number) => (
               <button
@@ -96,7 +131,7 @@ export default function EpisodePage() {
       {/* Quality Selection */}
       {qualities.length > 0 && (
         <div className="mb-8">
-          <h3 className="text-sm font-semibold text-gray-400 mb-3">Quality:</h3>
+          <h3 className="text-sm font-semibold text-gray-400 mb-3">Kualitas:</h3>
           <div className="flex flex-wrap gap-2">
             {qualities.map((q: any, index: number) => (
               <button
@@ -117,25 +152,25 @@ export default function EpisodePage() {
 
       {/* Navigation */}
       <div className="flex items-center justify-between gap-4">
-        {episode?.prev_episode ? (
+        {prevSlug ? (
           <Link
-            href={`/episode/${episode.prev_episode.slug}`}
+            href={`/episode/${prevSlug}`}
             className="px-6 py-3 bg-card border border-primary/30 rounded-xl text-sm font-medium text-gray-300 hover:bg-primary/20 hover:text-white transition-all"
           >
             ← Episode Sebelumnya
           </Link>
         ) : <div />}
-        {episode?.anime_slug && (
+        {animeSlug && (
           <Link
-            href={`/anime/${episode.anime_slug}`}
+            href={`/anime/${animeSlug}`}
             className="px-6 py-3 bg-primary/20 border border-primary/30 rounded-xl text-sm font-medium text-primary hover:bg-primary hover:text-white transition-all"
           >
             📋 Semua Episode
           </Link>
         )}
-        {episode?.next_episode ? (
+        {nextSlug ? (
           <Link
-            href={`/episode/${episode.next_episode.slug}`}
+            href={`/episode/${nextSlug}`}
             className="px-6 py-3 bg-card border border-primary/30 rounded-xl text-sm font-medium text-gray-300 hover:bg-primary/20 hover:text-white transition-all"
           >
             Episode Selanjutnya →
