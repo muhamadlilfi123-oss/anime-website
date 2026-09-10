@@ -56,19 +56,32 @@ export default function AnimeDetailPage() {
     ? anime.genreList
     : [];
 
+  const firstEp = episodeList.length > 0 
+    ? (episodeList[0]?.slug ? episodeList[episodeList.length - 1] : episodeList[0]) 
+    : null;
+  const firstEpSlug = firstEp ? extractSlug(firstEp) : '';
+
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
       {/* Anime Info */}
       <div className="flex flex-col md:flex-row gap-8 mb-10">
-        <div className="w-full md:w-72 flex-shrink-0">
+        <div className="w-full md:w-72 flex-shrink-0 flex flex-col items-center">
           <img
             src={anime?.poster || anime?.thumb || anime?.image || 'https://placehold.co/300x400/1a1730/ffffff?text=No+Image'}
             alt={anime?.title || anime?.name || 'Anime'}
-            className="w-full rounded-xl shadow-2xl shadow-primary/10"
+            className="w-full rounded-xl shadow-2xl shadow-primary/10 object-cover aspect-[3/4]"
             onError={(e) => {
               (e.target as HTMLImageElement).src = 'https://placehold.co/300x400/1a1730/ffffff?text=No+Image';
             }}
           />
+          {firstEpSlug && (
+            <Link
+              href={`/episode/${firstEpSlug}`}
+              className="mt-4 flex items-center justify-center gap-2 w-full py-3 bg-gradient-to-r from-primary to-accent text-white font-bold rounded-xl shadow-lg shadow-primary/30 hover:brightness-110 transition-all"
+            >
+              <span>▶</span> Mulai Nonton
+            </Link>
+          )}
         </div>
         <div className="flex-1">
           <h1 className="text-3xl font-bold mb-4 text-white">

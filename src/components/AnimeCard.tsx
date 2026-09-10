@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { extractSlug } from '@/lib/api';
 
 interface AnimeCardProps {
   title: string;
@@ -12,9 +13,10 @@ interface AnimeCardProps {
 
 export default function AnimeCard({ title, slug, poster, episode, score, status, type }: AnimeCardProps) {
   const isOngoing = typeof status === 'string' && status.toLowerCase().includes('ongoing');
+  const validSlug = extractSlug(slug) || extractSlug({ title }) || '';
 
   return (
-    <Link href={slug ? `/anime/${slug}` : '#'} className="group">
+    <Link href={validSlug ? `/anime/${validSlug}` : '#'} className="group block cursor-pointer">
       <div className="relative bg-card rounded-xl overflow-hidden shadow-lg hover:shadow-primary/20 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
         <div className="aspect-[3/4] relative overflow-hidden bg-gray-900">
           <img

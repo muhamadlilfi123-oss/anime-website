@@ -85,8 +85,35 @@ export function extractList(data: any): any[] {
 export function extractSlug(item: any): string {
   if (!item) return '';
   if (typeof item === 'string') {
-    return item.replace(/^\/?(anime\/|episode\/)?/, '').replace(/\/$/, '');
+    const cleaned = item.replace(/\/+$/, '');
+    const parts = cleaned.split('/');
+    return parts[parts.length - 1] || '';
   }
-  const raw = item.slug || item.animeId || item.anime_id || item.episodeId || item.episode_id || item.endpoint || item.id || '';
-  return String(raw).replace(/^\/?(anime\/|episode\/)?/, '').replace(/\/$/, '');
+
+  // Cek semua kemungkinan properti di API anime
+  const raw = item.slug || 
+              item.animeId || 
+              item.anime_id || 
+              item.episodeId || 
+              item.episode_id || 
+              item.endpoint || 
+              item.id || 
+              item.url || 
+              item.link || 
+              item.href || 
+              '';
+
+  if (raw) {
+    const cleanStr = String(raw).replace(/\/+$/, '');
+    const segments = cleanStr.split('/');
+    return segments[segments.length - 1] || cleanStr;
+  }
+
+  // Fallback terakhir: jika hanya ada title/name, ubah jadi slug
+  const title = item.title || item.name;
+  if (title && typeof title === 'string') {
+    return title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+  }
+
+  return '';
 }
