@@ -6,9 +6,20 @@ import { getEpisode, extractSlug } from '@/lib/api';
 import Link from 'next/link';
 import { EpisodeSkeleton } from '@/components/LoadingSkeleton';
 
+const renderText = (val: any): string => {
+  if (val === null || val === undefined) return '';
+  if (typeof val === 'string' || typeof val === 'number') return String(val);
+  if (Array.isArray(val)) return val.map(renderText).join(' ');
+  if (typeof val === 'object') {
+    return val.name || val.title || val.server || val.quality || val.resolution || '';
+  }
+  return String(val);
+};
+
 export default function EpisodePage() {
   const params = useParams();
-  const slug = params.slug as string;
+  const rawSlug = params?.slug;
+  const slug = Array.isArray(rawSlug) ? rawSlug[0] : (rawSlug as string) || '';
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -18,6 +29,7 @@ export default function EpisodePage() {
   useEffect(() => {
     if (!slug) return;
     setLoading(true);
+    setError(null);
     getEpisode(slug)
       .then(setData)
       .catch((err) => setError(err.message))
@@ -29,16 +41,18 @@ export default function EpisodePage() {
   if (error) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-red-400 text-lg mb-4">⚠️ Gagal memuat episode</p>
-          <p className="text-gray-500">{error}</p>
-          <Link href="/" className="mt-4 inline-block px-6 py-2 bg-primary rounded-lg hover:bg-accent transition-colors">Kembali</Link>
+        <div className="text-center p-6 bg-card rounded-2xl max-w-md mx-4">
+          <p className="text-red-400 text-lg mb-2">⚠️ Gagal memuat episode</p>
+          <p className="text-gray-400 text-sm mb-6">{error}</p>
+          <Link href="/" className="inline-block px-6 py-2.5 bg-primary text-white font-medium rounded-xl hover:bg-accent transition-colors">
+            Kembali ke Home
+          </Link>
         </div>
       </div>
     );
   }
 
-  const episode = data?.data || data?.episode || data;
+  const episode = data?.data || data?.episode || data || {};
   const streamingServers = Array.isArray(episode?.streaming) 
     ? episode.streaming 
     : Array.isArray(episode?.server)
@@ -103,7 +117,7 @@ export default function EpisodePage() {
 
       {/* Episode Title */}
       <h1 className="text-2xl font-bold mb-4 text-white">
-        {episode?.title || episode?.name || 'Episode'}
+        {renderText(episode?.title || episode?.name || 'Episode')}
       </h1>
 
       {/* Server Selection */}
@@ -121,7 +135,7 @@ export default function EpisodePage() {
                     : 'bg-card text-gray-400 hover:bg-primary/20 hover:text-white'
                 }`}
               >
-                {server?.name || server?.server || `Server ${index + 1}`}
+                {renderText(server?.name || server?.server || `Server ${index + 1}`)}
               </button>
             ))}
           </div>
@@ -143,7 +157,7 @@ export default function EpisodePage() {
                     : 'bg-card text-gray-400 hover:bg-accent/20 hover:text-white'
                 }`}
               >
-                {q?.quality || q?.name || q?.resolution || `Quality ${index + 1}`}
+                {renderText(q?.quality || q?.name || q?.resolution || `Quality ${index + 1}`)}
               </button>
             ))}
           </div>

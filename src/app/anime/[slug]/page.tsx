@@ -6,9 +6,20 @@ import { getAnimeDetail, extractSlug } from '@/lib/api';
 import Link from 'next/link';
 import { DetailSkeleton } from '@/components/LoadingSkeleton';
 
+const renderText = (val: any): string => {
+  if (val === null || val === undefined) return '';
+  if (typeof val === 'string' || typeof val === 'number') return String(val);
+  if (Array.isArray(val)) return val.map(renderText).join(' ');
+  if (typeof val === 'object') {
+    return val.name || val.title || val.value || '';
+  }
+  return String(val);
+};
+
 export default function AnimeDetailPage() {
   const params = useParams();
-  const slug = params.slug as string;
+  const rawSlug = params?.slug;
+  const slug = Array.isArray(rawSlug) ? rawSlug[0] : (rawSlug as string) || '';
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -16,6 +27,7 @@ export default function AnimeDetailPage() {
   useEffect(() => {
     if (!slug) return;
     setLoading(true);
+    setError(null);
     getAnimeDetail(slug)
       .then(setData)
       .catch((err) => setError(err.message))
@@ -27,16 +39,18 @@ export default function AnimeDetailPage() {
   if (error) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-red-400 text-lg mb-4">⚠️ Gagal memuat data anime</p>
-          <p className="text-gray-500">{error}</p>
-          <Link href="/" className="mt-4 inline-block px-6 py-2 bg-primary rounded-lg hover:bg-accent transition-colors">Kembali ke Home</Link>
+        <div className="text-center p-6 bg-card rounded-2xl max-w-md mx-4">
+          <p className="text-red-400 text-lg mb-2">⚠️ Gagal memuat data anime</p>
+          <p className="text-gray-400 text-sm mb-6">{error}</p>
+          <Link href="/" className="inline-block px-6 py-2.5 bg-primary text-white font-medium rounded-xl hover:bg-accent transition-colors">
+            Kembali ke Home
+          </Link>
         </div>
       </div>
     );
   }
 
-  const anime = data?.data || data?.anime || data;
+  const anime = data?.data || data?.anime || data || {};
 
   const episodeList: any[] = Array.isArray(anime?.episode_list)
     ? anime.episode_list
@@ -61,14 +75,18 @@ export default function AnimeDetailPage() {
     : null;
   const firstEpSlug = firstEp ? extractSlug(firstEp) : '';
 
+  const posterImg = anime?.poster || anime?.thumb || anime?.image || 'https://placehold.co/300x400/1a1730/ffffff?text=No+Image';
+  const animeTitle = renderText(anime?.title || anime?.name) || 'Detail Anime';
+  const synopsisText = renderText(anime?.synopsis || anime?.sinopsis);
+
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
       {/* Anime Info */}
       <div className="flex flex-col md:flex-row gap-8 mb-10">
         <div className="w-full md:w-72 flex-shrink-0 flex flex-col items-center">
           <img
-            src={anime?.poster || anime?.thumb || anime?.image || 'https://placehold.co/300x400/1a1730/ffffff?text=No+Image'}
-            alt={anime?.title || anime?.name || 'Anime'}
+            src={posterImg}
+            alt={animeTitle}
             className="w-full rounded-xl shadow-2xl shadow-primary/10 object-cover aspect-[3/4]"
             onError={(e) => {
               (e.target as HTMLImageElement).src = 'https://placehold.co/300x400/1a1730/ffffff?text=No+Image';
@@ -85,10 +103,10 @@ export default function AnimeDetailPage() {
         </div>
         <div className="flex-1">
           <h1 className="text-3xl font-bold mb-4 text-white">
-            {anime?.title || anime?.name}
+            {animeTitle}
           </h1>
           {anime?.japanese && (
-            <p className="text-gray-400 text-sm mb-4 italic">{anime.japanese}</p>
+            <p className="text-gray-400 text-sm mb-4 italic">{renderText(anime.japanese)}</p>
           )}
           
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
@@ -96,49 +114,49 @@ export default function AnimeDetailPage() {
               <div className="flex items-center gap-2 text-sm">
                 <span className="text-yellow-400">⭐</span>
                 <span className="text-gray-400">Score:</span>
-                <span className="text-white font-semibold">{anime.score}</span>
+                <span className="text-white font-semibold">{renderText(anime.score)}</span>
               </div>
             )}
             {anime?.status && (
               <div className="flex items-center gap-2 text-sm">
                 <span className="text-green-400">●</span>
                 <span className="text-gray-400">Status:</span>
-                <span className="text-white font-semibold">{anime.status}</span>
+                <span className="text-white font-semibold">{renderText(anime.status)}</span>
               </div>
             )}
             {anime?.type && (
               <div className="flex items-center gap-2 text-sm">
                 <span className="text-blue-400">📺</span>
                 <span className="text-gray-400">Type:</span>
-                <span className="text-white font-semibold">{anime.type}</span>
+                <span className="text-white font-semibold">{renderText(anime.type)}</span>
               </div>
             )}
             {(anime?.total_episode || anime?.episodes) && (
               <div className="flex items-center gap-2 text-sm">
                 <span className="text-purple-400">🎬</span>
                 <span className="text-gray-400">Episodes:</span>
-                <span className="text-white font-semibold">{anime.total_episode || anime.episodes}</span>
+                <span className="text-white font-semibold">{renderText(anime.total_episode || anime.episodes)}</span>
               </div>
             )}
             {anime?.duration && (
               <div className="flex items-center gap-2 text-sm">
                 <span className="text-orange-400">⏱️</span>
                 <span className="text-gray-400">Duration:</span>
-                <span className="text-white font-semibold">{anime.duration}</span>
+                <span className="text-white font-semibold">{renderText(anime.duration)}</span>
               </div>
             )}
             {anime?.released && (
               <div className="flex items-center gap-2 text-sm">
                 <span className="text-pink-400">📅</span>
                 <span className="text-gray-400">Released:</span>
-                <span className="text-white font-semibold">{anime.released}</span>
+                <span className="text-white font-semibold">{renderText(anime.released)}</span>
               </div>
             )}
             {anime?.studio && (
               <div className="flex items-center gap-2 text-sm">
                 <span className="text-cyan-400">🏢</span>
                 <span className="text-gray-400">Studio:</span>
-                <span className="text-white font-semibold">{anime.studio}</span>
+                <span className="text-white font-semibold">{renderText(anime.studio)}</span>
               </div>
             )}
           </div>
@@ -154,7 +172,7 @@ export default function AnimeDetailPage() {
                     href={genreSlug ? `/genre/${genreSlug}` : '#'}
                     className="px-3 py-1 bg-primary/20 text-primary text-xs font-medium rounded-full hover:bg-primary/40 transition-colors"
                   >
-                    {genre?.name || genre?.title || String(genre)}
+                    {renderText(genre)}
                   </Link>
                 );
               })}
@@ -162,10 +180,10 @@ export default function AnimeDetailPage() {
           )}
 
           {/* Synopsis */}
-          {(anime?.synopsis || anime?.sinopsis) && (
+          {synopsisText && (
             <div>
               <h3 className="text-lg font-semibold mb-2 text-white">Sinopsis</h3>
-              <p className="text-gray-400 text-sm leading-relaxed">{anime.synopsis || anime.sinopsis}</p>
+              <p className="text-gray-400 text-sm leading-relaxed">{synopsisText}</p>
             </div>
           )}
         </div>
@@ -192,10 +210,10 @@ export default function AnimeDetailPage() {
                   </span>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-300 truncate group-hover:text-white transition-colors">
-                      {ep?.title || ep?.name || ep?.episode || `Episode ${index + 1}`}
+                      {renderText(ep?.title || ep?.name || ep?.episode || `Episode ${index + 1}`)}
                     </p>
                     {ep?.date && (
-                      <p className="text-xs text-gray-500">{ep.date}</p>
+                      <p className="text-xs text-gray-500">{renderText(ep.date)}</p>
                     )}
                   </div>
                 </Link>
