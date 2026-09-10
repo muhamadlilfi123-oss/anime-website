@@ -1,0 +1,147 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useParams } from 'next/navigation';
+import { getEpisode } from '@/lib/api';
+import Link from 'next/link';
+import { EpisodeSkeleton } from '@/components/LoadingSkeleton';
+
+export default function EpisodePage() {
+  const params = useParams();
+  const slug = params.slug as string;
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [activeServer, setActiveServer] = useState(0);
+  const [activeQuality, setActiveQuality] = useState(0);
+
+  useEffect(() => {
+    if (!slug) return;
+    setLoading(true);
+    getEpisode(slug)
+      .then(setData)
+      .catch((err) => setError(err.message))
+      .finally(() => setLoading(false));
+  }, [slug]);
+
+  if (loading) return <EpisodeSkeleton />;
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-400 text-lg mb-4">⚠️ Gagal memuat episode</p>
+          <p className="text-gray-500">{error}</p>
+          <Link href="/" className="mt-4 inline-block px-6 py-2 bg-primary rounded-lg hover:bg-accent transition-colors">Kembali</Link>
+        </div>
+      </div>
+    );
+  }
+
+  const episode = data?.data || data;
+  const streamingServers = Array.isArray(episode?.streaming) 
+    ? episode.streaming 
+    : (Array.isArray(episode?.server) ? episode.server : []);
+  const currentServer = streamingServers[activeServer];
+  const qualities = Array.isArray(currentServer?.quality) 
+    ? currentServer.quality 
+    : (Array.isArray(currentServer?.qualities) ? currentServer.qualities : []);
+  const currentUrl = qualities[activeQuality]?.url || qualities[activeQuality]?.link || currentServer?.url || episode?.stream_url || '';
+
+  return (
+    <div className="max-w-5xl mx-auto px-4 py-8">
+      {/* Video Player */}
+      <div className="aspect-video bg-black rounded-xl overflow-hidden shadow-2xl shadow-primary/10 mb-6">
+        {currentUrl ? (
+          <iframe
+            src={currentUrl}
+            className="w-full h-full"
+            allowFullScreen
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-gray-500">
+            <p>Pilih server untuk memutar video</p>
+          </div>
+        )}
+      </div>
+
+      {/* Episode Title */}
+      <h1 className="text-2xl font-bold mb-4 text-white">
+        {episode?.title || 'Episode'}
+      </h1>
+
+      {/* Server Selection */}
+      {streamingServers.length > 0 && (
+        <div className="mb-6">
+          <h3 className="text-sm font-semibold text-gray-400 mb-3">Server:</h3>
+          <div className="flex flex-wrap gap-2">
+            {streamingServers.map((server: any, index: number) => (
+              <button
+                key={index}
+                onClick={() => { setActiveServer(index); setActiveQuality(0); }}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                  activeServer === index
+                    ? 'bg-primary text-white shadow-lg shadow-primary/30'
+                    : 'bg-card text-gray-400 hover:bg-primary/20 hover:text-white'
+                }`}
+              >
+                {server?.name || server?.server || `Server ${index + 1}`}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Quality Selection */}
+      {qualities.length > 0 && (
+        <div className="mb-8">
+          <h3 className="text-sm font-semibold text-gray-400 mb-3">Quality:</h3>
+          <div className="flex flex-wrap gap-2">
+            {qualities.map((q: any, index: number) => (
+              <button
+                key={index}
+                onClick={() => setActiveQuality(index)}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                  activeQuality === index
+                    ? 'bg-accent text-white shadow-lg shadow-accent/30'
+                    : 'bg-card text-gray-400 hover:bg-accent/20 hover:text-white'
+                }`}
+              >
+                {q?.quality || q?.name || q?.resolution || `Quality ${index + 1}`}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Navigation */}
+      <div className="flex items-center justify-between gap-4">
+        {episode?.prev_episode ? (
+          <Link
+            href={`/episode/${episode.prev_episode.slug}`}
+            className="px-6 py-3 bg-card border border-primary/30 rounded-xl text-sm font-medium text-gray-300 hover:bg-primary/20 hover:text-white transition-all"
+          >
+            ← Episode Sebelumnya
+          </Link>
+        ) : <div />}
+        {episode?.anime_slug && (
+          <Link
+            href={`/anime/${episode.anime_slug}`}
+            className="px-6 py-3 bg-primary/20 border border-primary/30 rounded-xl text-sm font-medium text-primary hover:bg-primary hover:text-white transition-all"
+          >
+            📋 Semua Episode
+          </Link>
+        )}
+        {episode?.next_episode ? (
+          <Link
+            href={`/episode/${episode.next_episode.slug}`}
+            className="px-6 py-3 bg-card border border-primary/30 rounded-xl text-sm font-medium text-gray-300 hover:bg-primary/20 hover:text-white transition-all"
+          >
+            Episode Selanjutnya →
+          </Link>
+        ) : <div />}
+      </div>
+    </div>
+  );
+}
