@@ -16,25 +16,35 @@ const renderText = (val: any): string => {
   return String(val);
 };
 
-export default function AnimeDetailPage() {
-  const params = useParams();
-  const rawSlug = params?.slug;
+export default function AnimeDetailPage({ params }: { params?: { slug?: string } }) {
+  const routerParams = useParams();
+  const rawSlug = params?.slug || routerParams?.slug;
   const slug = Array.isArray(rawSlug) ? rawSlug[0] : (rawSlug as string) || '';
+
+  const [isMounted, setIsMounted] = useState(false);
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!slug) return;
+    setIsMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!isMounted || !slug) return;
     setLoading(true);
     setError(null);
     getAnimeDetail(slug)
-      .then(setData)
-      .catch((err) => setError(err.message))
+      .then((res) => {
+        setData(res);
+      })
+      .catch((err) => {
+        setError(err.message || 'Gagal memuat detail anime');
+      })
       .finally(() => setLoading(false));
-  }, [slug]);
+  }, [isMounted, slug]);
 
-  if (loading) return <DetailSkeleton />;
+  if (!isMounted || loading) return <DetailSkeleton />;
 
   if (error) {
     return (

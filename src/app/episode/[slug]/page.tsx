@@ -16,10 +16,12 @@ const renderText = (val: any): string => {
   return String(val);
 };
 
-export default function EpisodePage() {
-  const params = useParams();
-  const rawSlug = params?.slug;
+export default function EpisodePage({ params }: { params?: { slug?: string } }) {
+  const routerParams = useParams();
+  const rawSlug = params?.slug || routerParams?.slug;
   const slug = Array.isArray(rawSlug) ? rawSlug[0] : (rawSlug as string) || '';
+
+  const [isMounted, setIsMounted] = useState(false);
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -27,16 +29,20 @@ export default function EpisodePage() {
   const [activeQuality, setActiveQuality] = useState(0);
 
   useEffect(() => {
-    if (!slug) return;
+    setIsMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!isMounted || !slug) return;
     setLoading(true);
     setError(null);
     getEpisode(slug)
       .then(setData)
-      .catch((err) => setError(err.message))
+      .catch((err) => setError(err.message || 'Gagal memuat video episode'))
       .finally(() => setLoading(false));
-  }, [slug]);
+  }, [isMounted, slug]);
 
-  if (loading) return <EpisodeSkeleton />;
+  if (!isMounted || loading) return <EpisodeSkeleton />;
 
   if (error) {
     return (

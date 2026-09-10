@@ -47,11 +47,27 @@ export async function getComplete(page: number = 1) {
 }
 
 export async function getAnimeDetail(slug: string) {
-  return fetchAPI(`/anime/${slug}`);
+  try {
+    return await fetchAPI(`/anime/${slug}`);
+  } catch (err: any) {
+    try {
+      return await fetchAPI(`/${slug}`);
+    } catch {
+      return await fetchAPI(`/detail/${slug}`);
+    }
+  }
 }
 
 export async function getEpisode(slug: string) {
-  return fetchAPI(`/episode/${slug}`);
+  try {
+    return await fetchAPI(`/episode/${slug}`);
+  } catch (err: any) {
+    try {
+      return await fetchAPI(`/${slug}`);
+    } catch {
+      return await fetchAPI(`/watch/${slug}`);
+    }
+  }
 }
 
 export async function getSchedule() {
